@@ -12,7 +12,7 @@ export function log(msg:string, mode:LOGGER_MODE){
 }
 
 export function logInfo(msg:string){
-	// log(msg, LOGGER_MODE.INFO);
+	log(msg, LOGGER_MODE.INFO);
 }
 
 export function logDebug(msg:string){

@@ -5,9 +5,13 @@ import { SymbolTable } from './symbol_table';
 import { Attribute, P4IR } from './p4_ir';
 import { TextDocumentPositionParams, CompletionItem, CompletionItemKind } from 'vscode-languageserver';
 import { getName } from '../antlr_compiler_proxy';
+import { resourceCalculator } from '../resource_alloc/resourceCalculator';
 
 export class MyP4Listener extends P4Listener{
 	private sTable: SymbolTable;
+	private typeDefMap = new Map();
+	private actionMap = new Map();
+
 
 	constructor(){
 		super();
@@ -42,10 +46,24 @@ export class MyP4Listener extends P4Listener{
 		this.sTable.pop();
 	}
 
+	enterTypedefDeclaration(ctx){
+		var id = (ctx.getChild(3).getText());
+		MyP4Listener.prototype.enterBaseType = function(ctx) {
+			var bits = ctx.getChild(2).getText(); 	//nodes are 'bit' '<' 'int' '>'
+			//logInfo("key: " + id + " value: " + bits);	//logging to show
+			this.typeDefMap.set(id, bits);
+		};
+	}
+
+	
+
 	enterTableDeclaration(ctx){
 		let p:P4IR = this.pushBlock(P4IRTypes.TABLE, ctx);
 		let helperField: Attribute = new Attribute("apply()", "method", CompletionItemKind.Function);
 		p.add(helperField);
+
+		//preforming resource calculation
+		resourceCalculator(ctx, this.typeDefMap, this.actionMap);
 	}
 
 	exitTableDeclaration(ctx){
@@ -64,6 +82,19 @@ export class MyP4Listener extends P4Listener{
 
 	enterActionDeclaration(ctx){
 		this.pushBlock(P4IRTypes.ACTION, ctx);
+		
+		//Storing parameters for use later
+		var actionId = ctx.getChild(2).getText();
+		var actionParams = [];
+
+		MyP4Listener.prototype.enterParameterList = function(ctx) {
+			MyP4Listener.prototype.enterParameter = function(ctx){
+				actionParams.push(ctx.getChild(2).getText());
+			};
+		};
+		MyP4Listener.prototype.exitParameterList = function(ctx) {
+			this.actionMap.set(actionId, actionParams);
+		};
 	}
 
 	exitActionDeclaration(ctx){
@@ -113,5 +144,19 @@ export class MyP4Listener extends P4Listener{
 		let type: string = ctx.typeRef().getText();
 		let attr: Attribute = new Attribute(name, type, CompletionItemKind.Field);
 		this.sTable.add_attr(attr);
+	}
+
+	//empty methods to allow use
+	enterNonTableKwName(ctx){
+	}
+	enterInitializer(ctx){
+	}
+	enterActionRef(ctx){
+	}
+	enterBaseType(ctx){
+	}
+	enterParameterList(ctx){
+	}
+	exitParameterList(ctx){
 	}
 }

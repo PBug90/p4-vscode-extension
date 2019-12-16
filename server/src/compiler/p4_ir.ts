@@ -1,10 +1,10 @@
 import { P4IRTypes } from './p4_ir_types' ;
 import { debuglog } from 'util';
 import { logInfo, logDebug } from '../utils/logger';
-import { Node } from 'ts-pq';
+//mport { Node } from 'ts-pq';
 import { CompletionItem, CompletionItemKind, MarkupContent } from 'vscode-languageserver';
 
-export class P4IR implements Node {
+export class P4IR {//implements Node {
 	private attributes: Map<string, Attribute> = new Map();
 	private type: P4IRTypes;
 	private parent: P4IR;
